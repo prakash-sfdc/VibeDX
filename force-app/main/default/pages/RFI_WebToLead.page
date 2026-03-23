@@ -1,0 +1,189 @@
+<apex:page showHeader="false" sidebar="false" standardStylesheets="false" docType="html-5.0" applyHtmlTag="false" applyBodyTag="false" cache="false">
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Request for information</title>
+  <style>
+    :root {
+      --fa-surface: #ffffff;
+      --fa-page: #f4f6f9;
+      --fa-border: #e5e9f0;
+      --fa-text: #1b1f24;
+      --fa-muted: #5c6c7c;
+      --fa-accent: #0176d3;
+      --fa-accent-hover: #014486;
+      --fa-radius: 12px;
+      --fa-shadow: 0 4px 24px rgba(15, 23, 42, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      color: var(--fa-text);
+      background: var(--fa-page);
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrap {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem 3rem;
+    }
+    .card {
+      background: var(--fa-surface);
+      border: 1px solid var(--fa-border);
+      border-radius: var(--fa-radius);
+      box-shadow: var(--fa-shadow);
+      padding: 2rem 1.75rem;
+    }
+    h1 {
+      margin: 0 0 0.35rem;
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    .sub {
+      margin: 0 0 1.75rem;
+      color: var(--fa-muted);
+      font-size: 0.95rem;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.875rem;
+      margin-bottom: 0.35rem;
+    }
+    .req { color: #ba0517; font-weight: 700; margin-left: 0.15rem; }
+    .field { margin-bottom: 1.15rem; }
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"] {
+      width: 100%;
+      padding: 0.65rem 0.75rem;
+      border: 1px solid var(--fa-border);
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--fa-accent);
+      box-shadow: 0 0 0 3px rgba(1, 118, 211, 0.2);
+    }
+    .hint { font-size: 0.8rem; color: var(--fa-muted); margin-top: 0.25rem; }
+    .actions { margin-top: 1.75rem; }
+    button[type="submit"] {
+      width: 100%;
+      padding: 0.85rem 1rem;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #fff;
+      background: var(--fa-accent);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    button[type="submit"]:hover { background: var(--fa-accent-hover); }
+    .privacy {
+      margin-top: 1.25rem;
+      font-size: 0.8rem;
+      color: var(--fa-muted);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Request for information</h1>
+      <p class="sub">Tell us how to reach you. We will respond with the details you need.</p>
+
+      <form id="rfiWebToLead" method="POST" accept-charset="UTF-8">
+        <input type="hidden" name="oid" value="{!$Organization.Id}"/>
+        <!-- retURL must be absolute https URL; URLFOR is often relative and Web-to-Lead rejects it -->
+        <input type="hidden" name="retURL" id="w2l_retURL" value=""/>
+        <!-- Must match an active Lead Source picklist value in the org (e.g. Web) -->
+        <input type="hidden" name="lead_source" value="Web"/>
+        <input type="hidden" name="description" id="w2l_description" value=""/>
+
+        <div class="field">
+          <label for="full_name">Full name<span class="req" aria-hidden="true">*</span></label>
+          <input type="text" id="full_name" required="required" autocomplete="name" aria-required="true"/>
+          <p class="hint">We will split this into first and last name for your lead record.</p>
+        </div>
+
+        <div class="field">
+          <label for="email">Email<span class="req" aria-hidden="true">*</span></label>
+          <input type="email" id="email" name="email" required="required" autocomplete="email" aria-required="true"/>
+        </div>
+
+        <div class="field">
+          <label for="phone">Phone</label>
+          <input type="tel" id="phone" name="phone" autocomplete="tel"/>
+        </div>
+
+        <!-- Hard-coded company for all RFI Web-to-Lead submissions -->
+        <input type="hidden" name="company" id="company_hidden" value="Coolio"/>
+
+        <div class="actions">
+          <button type="submit">Submit request</button>
+        </div>
+      </form>
+
+      <p class="privacy">Your information is sent securely to our team via Web-to-Lead.</p>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var form = document.getElementById('rfiWebToLead');
+      if (!form) return;
+
+      function webToLeadPostUrl() {
+        var h = (location.hostname || '').toLowerCase();
+        /* Sandboxes and scratch orgs use test.salesforce.com; Developer Edition (.develop.) uses webto like production. */
+        if (h.indexOf('.sandbox.') !== -1 || h.indexOf('.scratch.') !== -1) {
+          return 'https://test.salesforce.com/servlet/servlet.WebToLead?encoding=UTF-8';
+        }
+        return 'https://webto.salesforce.com/servlet/servlet.WebToLead?encoding=UTF-8';
+      }
+      form.action = webToLeadPostUrl();
+
+      var ret = document.getElementById('w2l_retURL');
+      if (ret) {
+        ret.value = window.location.origin + '/apex/RFI_WebToLead_Thanks';
+      }
+
+      form.addEventListener('submit', function () {
+        var full = (document.getElementById('full_name').value || '').trim();
+        var parts = full.split(/\s+/);
+        var first = parts.length ? parts[0] : '';
+        var last = parts.length > 1 ? parts.slice(1).join(' ') : (first ? first : '—');
+        if (!last) last = '—';
+
+        var fn = document.createElement('input');
+        fn.type = 'hidden';
+        fn.name = 'first_name';
+        fn.value = first;
+        form.appendChild(fn);
+
+        var ln = document.createElement('input');
+        ln.type = 'hidden';
+        ln.name = 'last_name';
+        ln.value = last;
+        form.appendChild(ln);
+
+        var desc = document.getElementById('w2l_description');
+        if (desc) {
+          desc.value = 'RFI (request for information) submitted from public form.';
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
+</apex:page>
